@@ -12,13 +12,13 @@ int main() {
 	MPI_Comm_size(MPI_COMM_WORLD, &comm_sz);
 	MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
 
-	// Первое задание
+	// РџРµСЂРІРѕРµ Р·Р°РґР°РЅРёРµ
 	first_task_execute(my_rank, comm_sz);
-
-	// Четвертое задание
-	fourth_task_execute(my_rank, comm_sz); // для демонстрации работы
-	fourth_task_report(my_rank, comm_sz); // для анализа работы алгоритма
-
+	
+	// Р§РµС‚РІРµСЂС‚РѕРµ Р·Р°РґР°РЅРёРµ
+	fourth_task_execute(my_rank, comm_sz); // РґР»СЏ РґРµРјРѕРЅСЃС‚СЂР°С†РёРё СЂР°Р±РѕС‚С‹
+	fourth_task_report(my_rank, comm_sz); // РґР»СЏ Р°РЅР°Р»РёР·Р° СЂР°Р±РѕС‚С‹ Р°Р»РіРѕСЂРёС‚РјР°
+	
 	MPI_Finalize();
 
 	return 0;
