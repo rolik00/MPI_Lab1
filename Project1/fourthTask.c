@@ -1,4 +1,4 @@
-﻿#define _CRT_SECURE_NO_WARNINGS
+#define _CRT_SECURE_NO_WARNINGS
 #include <stdio.h>
 #include <stdlib.h>
 #include <mpi.h>
@@ -82,80 +82,81 @@ void gauss_seidel_algorithm_sequential(double* u, int n, int* iter) {
 
 // Параллельная версия метода Гаусса-Зейделя
 void gauss_seidel_algorithm_parallel(int rank, int comm_sz, double* u, int n, int* iter) {
-    double h = (double)1 / (n - 1);
-    double dmax, global_dmax;
+	double h = (double)1 / (n - 1);
+	double dmax, global_dmax;
 
-    int rows_per_proc = (n - 2) / comm_sz;  
-    int remainder = (n - 2) % comm_sz;
+	int rows_per_proc = (n - 2) / comm_sz;
+	int remainder = (n - 2) % comm_sz;
 
-    int start_row = 1;
-    int end_row = 0;
+	int start_row = 1;
+	int end_row = 0;
 
-    if (rank < remainder) {
-        start_row = 1 + rank * (rows_per_proc + 1);
-        end_row = start_row + rows_per_proc;
-    } else {
-        start_row = 1 + remainder * (rows_per_proc + 1) + (rank - remainder) * rows_per_proc;
-        end_row = start_row + rows_per_proc - 1;
-    }
+	if (rank < remainder) {
+		start_row = 1 + rank * (rows_per_proc + 1);
+		end_row = start_row + rows_per_proc;
+	}
+	else {
+		start_row = 1 + remainder * (rows_per_proc + 1) + (rank - remainder) * rows_per_proc;
+		end_row = start_row + rows_per_proc - 1;
+	}
 
-    if (rank == comm_sz - 1) {
-        end_row = n - 2;
-    }
+	if (rank == comm_sz - 1) {
+		end_row = n - 2;
+	}
 
-    int local_rows = end_row - start_row + 1;
+	int local_rows = end_row - start_row + 1;
 
-    do {
-        dmax = 0.0;
-        if (comm_sz > 1) {
-            if (rank > 0) {
-                MPI_Sendrecv(&u[start_row * n], n, MPI_DOUBLE, rank - 1, 0, &u[(start_row - 1) * n], n, MPI_DOUBLE, rank - 1, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-            }
+	do {
+		dmax = 0.0;
+		if (comm_sz > 1) {
+			if (rank > 0) {
+				MPI_Sendrecv(&u[start_row * n], n, MPI_DOUBLE, rank - 1, 0, &u[(start_row - 1) * n], n, MPI_DOUBLE, rank - 1, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+			}
 
-            if (rank < comm_sz - 1) {
-                MPI_Sendrecv(&u[end_row * n], n, MPI_DOUBLE, rank + 1, 1, &u[(end_row + 1) * n], n, MPI_DOUBLE, rank + 1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-            }
-        }
+			if (rank < comm_sz - 1) {
+				MPI_Sendrecv(&u[end_row * n], n, MPI_DOUBLE, rank + 1, 1, &u[(end_row + 1) * n], n, MPI_DOUBLE, rank + 1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+			}
+		}
 
-        for (int i = start_row; i <= end_row; i++) {
-            for (int j = 1; j < n - 1; j++) {
-                double prev = u[i * n + j];
-                u[i * n + j] = 0.25 * (u[(i - 1) * n + j] + u[(i + 1) * n + j] + u[i * n + (j - 1)] + u[i * n + (j + 1)] - h * h * f(i * h, j * h));
-                double dm = fabs(prev - u[i * n + j]);
-                if (dmax < dm) dmax = dm;
-            }
-        }
+		for (int i = start_row; i <= end_row; i++) {
+			for (int j = 1; j < n - 1; j++) {
+				double prev = u[i * n + j];
+				u[i * n + j] = 0.25 * (u[(i - 1) * n + j] + u[(i + 1) * n + j] + u[i * n + (j - 1)] + u[i * n + (j + 1)] - h * h * f(i * h, j * h));
+				double dm = fabs(prev - u[i * n + j]);
+				if (dmax < dm) dmax = dm;
+			}
+		}
 
-        MPI_Allreduce(&dmax, &global_dmax, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+		MPI_Allreduce(&dmax, &global_dmax, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
 
-        (*iter)++;
+		(*iter)++;
 
-    } while (global_dmax > EPS && *iter < MAX_ITER);
+	} while (global_dmax > EPS && *iter < MAX_ITER);
 
-    if (comm_sz> 1) {
-        if (rank == 0) {
-            for (int p = 1; p < comm_sz; p++) {
-                int p_start_row, p_end_row;
-                if (p < remainder) {
-                    p_start_row = 1 + p * (rows_per_proc + 1);
-                    p_end_row = p_start_row + rows_per_proc;
-                }
-                else {
-                    p_start_row = 1 + remainder * (rows_per_proc + 1) + (p - remainder) * rows_per_proc;
-                    p_end_row = p_start_row + rows_per_proc - 1;
-                }
-                if (p == comm_sz - 1) {
-                    p_end_row = n - 2;
-                }
+	if (comm_sz > 1) {
+		if (rank == 0) {
+			for (int p = 1; p < comm_sz; p++) {
+				int p_start_row, p_end_row;
+				if (p < remainder) {
+					p_start_row = 1 + p * (rows_per_proc + 1);
+					p_end_row = p_start_row + rows_per_proc;
+				}
+				else {
+					p_start_row = 1 + remainder * (rows_per_proc + 1) + (p - remainder) * rows_per_proc;
+					p_end_row = p_start_row + rows_per_proc - 1;
+				}
+				if (p == comm_sz - 1) {
+					p_end_row = n - 2;
+				}
 
-                int p_rows = p_end_row - p_start_row + 1;
-                MPI_Recv(&u[p_start_row * n], p_rows * n, MPI_DOUBLE, p, 2, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-            }
-        }
-        else {
-            MPI_Send(&u[start_row * n], local_rows * n, MPI_DOUBLE, 0, 2, MPI_COMM_WORLD);
-        }
-    }
+				int p_rows = p_end_row - p_start_row + 1;
+				MPI_Recv(&u[p_start_row * n], p_rows * n, MPI_DOUBLE, p, 2, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+			}
+		}
+		else {
+			MPI_Send(&u[start_row * n], local_rows * n, MPI_DOUBLE, 0, 2, MPI_COMM_WORLD);
+		}
+	}
 }
 
 void copy_u(double* u, double* u_copy, int n) {
@@ -202,30 +203,76 @@ void fourth_task_execute(int my_rank, int comm_sz) {
 	report_fourth_task(u, n, iter, execution_time, comm_sz, my_rank, "Parallel Gauss-Seidel algorithm");
 }
 
-void load_data(int rank, int* n, double* c, int value) {
+void load_matrix_from_file_binary(int* n, double* c, double** u, const char* filename) {
+	FILE* file = fopen(filename, "rb");
+	if (file == NULL) return;
+
+	if (fread(n, sizeof(int), 1, file) != 1) {
+		fclose(file);
+		return;
+	}
+	
+	if (fread(c, sizeof(double), 1, file) != 1) {
+		fclose(file);
+		return;
+	}
+
+	*u = malloc((*n) * (*n) * sizeof(double));
+	if (*u == NULL) {
+		printf("Error: Memory allocation failed\n");
+		fclose(file);
+		return;
+	}
+
+	size_t elements_read = fread(*u, sizeof(double), (*n) * (*n), file);
+	if (elements_read != (size_t)((*n) * (*n))) {
+		free(*u);
+		*u = NULL;
+		fclose(file);
+		return;
+	}
+
+	fclose(file);
+	printf("Successfully loaded matrix from %s\n", filename);
+}
+
+void load_data(int rank, int* n, double* c, double** u, const char* filename) {
 	if (rank == 0) {
-		*n = value;
-		srand(time(NULL));
-		*c = (double)rand() / RAND_MAX * 10.0;
+		load_matrix_from_file_binary(n, c, u, filename);
+		printf("Loaded from file: n = %d, c = %f\n", *n, *c);
+
+		if (*u == NULL) {
+			printf("Creating test data instead...\n");
+			*n = 100;  
+			*c = 1.0;
+			*u = malloc((*n) * (*n) * sizeof(double));
+			generate_u(*u, *n, *c);
+		}
 	}
 
 	MPI_Bcast(n, 1, MPI_INT, 0, MPI_COMM_WORLD);
 	MPI_Bcast(c, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+	if (rank != 0) {
+		*u = malloc((*n) * (*n) * sizeof(double));
+	}
+
+	MPI_Bcast(*u, (*n) * (*n), MPI_DOUBLE, 0, MPI_COMM_WORLD);
 }
 
 void fourth_task_report(int my_rank, int comm_sz) {
-	int ns[] = { 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 2000, 3000 };
-	for(int i = 0; i < 12; i++) {
-		int n = 0, iter = 0;
+	int ns[] = { 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 2000, 3000};
+	int num_sizes = sizeof(ns) / sizeof(ns[0]);
+
+	for (int i = 0; i < num_sizes; i++) {
+		int n = 0;
+		int iter = 0;
 		double c = 0.0;
-		load_data(my_rank, &n, &c, ns[i]);
+		double* u = NULL;
 
-		double* u = malloc(n * n * sizeof(double));
-		create_and_distribute_data(my_rank, n, c, u);
+		char filename[50];
+		sprintf(filename, "D:\\MyProject\\MPI\\Project1\\Project1\\matrixes\\%d.bin", ns[i]);
 
-		double* u_copy = malloc(n * n * sizeof(double));
-		copy_u(u, u_copy, n);
-		compare_with_sequential(my_rank, comm_sz, u_copy, n);
+		load_data(my_rank, &n, &c, &u, filename);
 
 		MPI_Barrier(MPI_COMM_WORLD);
 		double start_time = MPI_Wtime();
@@ -236,5 +283,7 @@ void fourth_task_report(int my_rank, int comm_sz) {
 		double execution_time = end_time - start_time;
 
 		report_fourth_task(u, n, iter, execution_time, comm_sz, my_rank, "Parallel Gauss-Seidel algorithm");
+
+		free(u);
 	}
 }
