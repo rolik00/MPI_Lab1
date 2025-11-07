@@ -175,14 +175,12 @@ int main(int argc, char* argv[]) {
     end_time = MPI_Wtime();
     double parallel_time = end_time - start_time;
     if (rank == 0) {
-        printf("Алгоритм Кэннона\n");
         printf("Размер матрицы: %d x %d\n", n, n);
-        printf("Процессы: %d\n", size);
-        printf("Параллельное время: %.6f сек\n", parallel_time);
+        printf("Процессов: %d\n", size);
+        printf("Mpi время: %.6f сек\n", parallel_time);
         double seq_time = sequential_multiply(n);
-        printf("Последовательное время: %.6f сек\n", seq_time);
+        printf("Обычное время: %.6f сек\n", seq_time);
         printf("Ускорение: %.2f\n", seq_time / parallel_time);
-        printf("Эффективность: %.1f%%\n", (seq_time / parallel_time) / size * 100);
     }
     free(send_buffer_A);
     free(recv_buffer_A);
