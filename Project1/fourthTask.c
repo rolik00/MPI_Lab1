@@ -49,6 +49,7 @@ void report_fourth_task(double* u, int n, int iter, double execution_time, int c
 		printf("%s\n", algorithm_name);
 		printf("===============================================\n");
 		printf("Number of processes: %d\n", comm_sz);
+		printf("Size of grid: %dx%d\n", n, n);
 		print_u(u, n);
 		printf("Count of iterations: %d\n", iter);
 		printf("Execution time: %.6f seconds\n", execution_time);
